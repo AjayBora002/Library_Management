@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Library Management System</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Use Inter font -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        .spinner {
+            border-top-color: #3498db;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        /* Tab styles */
+        .tab-button {
+            transition: all 0.3s ease;
+        }
+        .tab-button[aria-selected="true"] {
+            border-bottom-color: #3b82f6; /* blue-500 */
+            color: #3b82f6;
+        }
+        .tab-panel {
+            display: none;
+        }
+        .tab-panel[aria-hidden="false"] {
+            display: block;
+        }
+        /* Custom input style for date */
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            cursor: pointer;
+            filter: invert(0.5);
+        }
+    </style>
+</head>
+<body class="antialiased text-gray-800">
+
+    <div class="container mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">
+        <h1 class="text-3xl sm:text-4xl font-bold text-gray-900 mb-6 text-center">Library Management System</h1>
+
+        <!-- Tab Navigation -->
+        <div class="mb-6">
+            <div class="border-b border-gray-200">
+                <nav class="-mb-px flex space-x-8" aria-label="Tabs" id="tab-nav">
+                    <button class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                            id="tab-books"
+                            role="tab"
+                            aria-controls="panel-books"
+                            aria-selected="true">
+                        Books
+                    </button>
+                    <button class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                            id="tab-members"
+                            role="tab"
+                            aria-controls="panel-members"
+                            aria-selected="false">
+                        Members
+                    </button>
+                    <button class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                            id="tab-loans"
+                            role="tab"
+                            aria-controls="panel-loans"
+                            aria-selected="false">
+                        Loans
+                    </button>
+                </nav>
+            </div>
+        </div>
+
+        <!-- Generic Message Areas -->
+        <div id="loading" class="flex justify-center items-center py-10 hidden">
+            <div class="spinner w-12 h-12 rounded-full border-4 border-gray-200"></div>
+        </div>
+        <div id="main-error-message" class="hidden text-center text-red-600 bg-red-100 p-4 rounded-md mb-4"></div>
+
+        <!-- ======================= -->
+        <!-- TAB PANEL 1: BOOKS      -->
+        <!-- ======================= -->
+        <div class="tab-panel" id="panel-books" role="tabpanel" aria-labelledby="tab-books" aria-hidden="false">
+            <div class="flex flex-col lg:flex-row gap-8">
+                <!-- Left: Add Book Form -->
+                <div class="lg:w-1/3 w-full">
+                    <form id="add-book-form" class="bg-white p-6 rounded-lg shadow-lg space-y-4">
+                        <h2 class="text-2xl font-semibold mb-3">Add a New Book</h2>
+                        <div>
+                            <label for="book_id" class="block text-sm font-medium text-gray-700">Book ID</label>
+                            <input type="text" id="book_id" name="book_id" required class="form-input" placeholder="e.g., B026">
+                        </div>
+                        <div>
+                            <label for="name" class="block text-sm font-medium text-gray-700">Name (Title)</label>
+                            <input type="text" id="name" name="name" required class="form-input">
+                        </div>
+                        <div>
+                            <label for="author" class="block text-sm font-medium text-gray-700">Author</label>
+                            <input type="text" id="author" name="author" required class="form-input">
+                        </div>
+                        <div>
+                            <label for="category" class="block text-sm font-medium text-gray-700">Category</label>
+                            <input type="text" id="category" name="category" required class="form-input">
+                        </div>
+                        <div>
+                            <label for="copies" class="block text-sm font-medium text-gray-700">Copies</label>
+                            <input type="number" id="copies" name="copies" required class="form-input" value="1">
+                        </div>
+                        <button type="submit" class="form-button">Add Book</button>
+                        <div id="book-form-message" class="mt-4 text-sm text-center"></div>
+                    </form>
+                </div>
+                <!-- Right: Book List -->
+                <div class="lg:w-2/3 w-full">
+                    <div class="bg-white p-6 rounded-lg shadow-lg">
+                        <h2 class="text-2xl font-semibold mb-5">Available Books</h2>
+                        <div id="book-list-container" class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200" id="book-table">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="table-header">Book ID</th>
+                                        <th class="table-header">Name</th>
+                                        <th class="table-header">Author</th>
+                                        <th class="table-header">Category</th>
+                                        <th class="table-header">Copies</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200" id="book-table-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ======================= -->
+        <!-- TAB PANEL 2: MEMBERS    -->
+        <!-- ======================= -->
+        <div class="tab-panel" id="panel-members" role="tabpanel" aria-labelledby="tab-members" aria-hidden="true">
+            <div class="flex flex-col lg:flex-row gap-8">
+                <!-- Left: Add Member Form -->
+                <div class="lg:w-1/3 w-full">
+                    <form id="add-member-form" class="bg-white p-6 rounded-lg shadow-lg space-y-4">
+                        <h2 class="text-2xl font-semibold mb-3">Add a New Member</h2>
+                        <div>
+                            <label for="user_id" class="block text-sm font-medium text-gray-700">User ID</label>
+                            <input type="text" id="user_id" name="user_id" required class="form-input" placeholder="e.g., M006">
+                        </div>
+                        <div>
+                            <label for="member_name" class="block text-sm font-medium text-gray-700">Name</label>
+                            <input type="text" id="member_name" name="member_name" required class="form-input">
+                        </div>
+                        <div>
+                            <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+                            <input type="password" id="password" name="password" required class="form-input">
+                        </div>
+                        <div>
+                            <label for="contact" class="block text-sm font-medium text-gray-700">Contact</label>
+                            <input type="text" id="contact" name="contact" required class="form-input">
+                        </div>
+                        <button type="submit" class="form-button">Add Member</button>
+                        <div id="member-form-message" class="mt-4 text-sm text-center"></div>
+                    </form>
+                </div>
+                <!-- Right: Member List -->
+                <div class="lg:w-2/3 w-full">
+                    <div class="bg-white p-6 rounded-lg shadow-lg">
+                        <h2 class="text-2xl font-semibold mb-5">Library Members</h2>
+                        <div id="member-list-container" class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200" id="member-table">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="table-header">User ID</th>
+                                        <th class="table-header">Name</th>
+                                        <th class="table-header">Contact</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200" id="member-table-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ======================= -->
+        <!-- TAB PANEL 3: LOANS      -->
+        <!-- ======================= -->
+        <div class="tab-panel" id="panel-loans" role="tabpanel" aria-labelledby="tab-loans" aria-hidden="true">
+            <div class="flex flex-col lg:flex-row gap-8">
+                <!-- Left: Issue Book Form -->
+                <div class="lg:w-1/3 w-full">
+                    <form id="issue-book-form" class="bg-white p-6 rounded-lg shadow-lg space-y-4">
+                        <h2 class="text-2xl font-semibold mb-3">Issue a Book</h2>
+                        <div>
+                            <label for="issue_book_id" class="block text-sm font-medium text-gray-700">Book ID</label>
+                            <input type="text" id="issue_book_id" name="issue_book_id" required class="form-input" placeholder="e.g., B001">
+                        </div>
+                        <div>
+                            <label for="issue_user_id" class="block text-sm font-medium text-gray-700">User ID</label>
+                            <input type="text" id="issue_user_id" name="issue_user_id" required class="form-input" placeholder="e.g., M001">
+                        </div>
+                        <div>
+                            <label for="due_date" class="block text-sm font-medium text-gray-700">Due Date</label>
+                            <input type="date" id="due_date" name="due_date" required class="form-input">
+                        </div>
+                        <button type="submit" class="form-button">Issue Book</button>
+                        <div id="loan-form-message" class="mt-4 text-sm text-center"></div>
+                    </form>
+                </div>
+                <!-- Right: Issued Books List -->
+                <div class="lg:w-2/3 w-full">
+                    <div class="bg-white p-6 rounded-lg shadow-lg">
+                        <h2 class="text-2xl font-semibold mb-5">Currently Issued Books</h2>
+                        <div id="loan-list-container" class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200" id="loan-table">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="table-header">Book Name</th>
+                                        <th class="table-header">Member Name</th>
+                                        <th class="table-header">Due Date</th>
+                                        <th class="table-header">Fine</th> <!-- <-- NEW COLUMN -->
+                                        <th class="table-header">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200" id="loan-table-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div> <!-- End of container -->
+
+    <!-- Common Tailwind classes to be applied by JS -->
+    <style>
+        .form-input {
+            @apply mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2.5;
+        }
+        .form-button {
+            @apply w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors;
+        }
+        .table-header {
+            @apply px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider;
+        }
+        .table-cell {
+            @apply px-4 py-3 whitespace-nowrap text-sm;
+        }
+        .return-button {
+            @apply py-1 px-3 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors;
+        }
+    </style>
+
+    <script>
+        const API_URL = 'http://127.0.0.1:5000';
+
+        // --- Element References ---
+        const loading = document.getElementById('loading');
+        const mainErrorMessage = document.getElementById('main-error-message');
+        const tabNav = document.getElementById('tab-nav');
+        const tabButtons = tabNav.querySelectorAll('[role="tab"]');
+        const tabPanels = document.querySelectorAll('.tab-panel');
+
+        // Book elements
+        const bookTableBody = document.getElementById('book-table-body');
+        const bookListContainer = document.getElementById('book-list-container');
+        const addBookForm = document.getElementById('add-book-form');
+        const bookFormMessage = document.getElementById('book-form-message');
+
+        // Member elements
+        const memberTableBody = document.getElementById('member-table-body');
+        const memberListContainer = document.getElementById('member-list-container');
+        const addMemberForm = document.getElementById('add-member-form');
+        const memberFormMessage = document.getElementById('member-form-message');
+
+        // Loan elements
+        const loanTableBody = document.getElementById('loan-table-body');
+        const loanListContainer = document.getElementById('loan-list-container');
+        const issueBookForm = document.getElementById('issue-book-form');
+        const loanFormMessage = document.getElementById('loan-form-message');
+
+        // --- Utility Functions ---
+        function showLoading(isLoading) {
+            loading.classList.toggle('hidden', !isLoading);
+        }
+        
+        function showFormMessage(element, message, type = 'success') {
+            element.textContent = message;
+            element.className = `mt-4 text-sm text-center ${type === 'success' ? 'text-green-600' : 'text-red-600'}`;
+        }
+
+        function showMainError(message) {
+            mainErrorMessage.textContent = message;
+            mainErrorMessage.classList.remove('hidden');
+        }
+
+        function clearMessages() {
+            bookFormMessage.textContent = '';
+            memberFormMessage.textContent = '';
+            loanFormMessage.textContent = '';
+            mainErrorMessage.classList.add('hidden');
+        }
+
+        // --- Tab Switching Logic ---
+        function switchTab(targetButton) {
+            tabButtons.forEach(button => {
+                const isSelected = (button === targetButton);
+                button.setAttribute('aria-selected', isSelected);
+            });
+            tabPanels.forEach(panel => {
+                const isHidden = (panel.id !== targetButton.getAttribute('aria-controls'));
+                panel.setAttribute('aria-hidden', isHidden);
+            });
+            
+            // Load content for the newly visible tab
+            const panelId = targetButton.getAttribute('aria-controls');
+            if (panelId === 'panel-books') fetchBooks();
+            if (panelId === 'panel-members') fetchMembers();
+            if (panelId === 'panel-loans') fetchLoans();
+        }
+
+        tabNav.addEventListener('click', (e) => {
+            if (e.target.role === 'tab') {
+                switchTab(e.target);
+            }
+        });
+
+        // --- Data Fetching & Rendering ---
+
+        // 1. Books
+        async function fetchBooks() {
+            showLoading(true);
+            clearMessages();
+            try {
+                const response = await fetch(`${API_URL}/api/books`);
+                if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+                const books = await response.json();
+                
+                bookTableBody.innerHTML = ''; // Clear existing
+                if (books.length === 0) {
+                    bookListContainer.innerHTML = '<p class="text-gray-500 text-center">No books found.</p>';
+                } else {
+                    books.forEach(book => {
+                        bookTableBody.innerHTML += `
+                            <tr class="hover:bg-gray-50">
+                                <td class="table-cell font-medium text-gray-900">${book.BOOK_ID}</td>
+                                <td class="table-cell text-gray-700">${book.NAME}</td>
+                                <td class="table-cell text-gray-500">${book.AUTHOR}</td>
+                                <td class="table-cell text-gray-500">${book.category}</td>
+                                <td class="table-cell text-gray-500 text-center">${book.COPIES}</td>
+                            </tr>
+                        `;
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to fetch books:', error);
+                showMainError('Failed to load books. Is the backend server running?');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // 2. Members
+        async function fetchMembers() {
+            showLoading(true);
+            clearMessages();
+            try {
+                const response = await fetch(`${API_URL}/api/members`);
+                if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+                const members = await response.json();
+                
+                memberTableBody.innerHTML = ''; // Clear existing
+                if (members.length === 0) {
+                    memberListContainer.innerHTML = '<p class="text-gray-500 text-center">No members found.</p>';
+                } else {
+                    members.forEach(member => {
+                        memberTableBody.innerHTML += `
+                            <tr class="hover:bg-gray-50">
+                                <td class="table-cell font-medium text-gray-900">${member.USER_ID}</td>
+                                <td class="table-cell text-gray-700">${member.NAME}</td>
+                                <td class="table-cell text-gray-500">${member.CONTACT}</td>
+                            </tr>
+                        `;
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to fetch members:', error);
+                showMainError('Failed to load members.');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // 3. Loans
+        async function fetchLoans() {
+            showLoading(true);
+            clearMessages();
+            try {
+                const response = await fetch(`${API_URL}/api/loans`);
+                if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+                const loans = await response.json();
+                
+                loanTableBody.innerHTML = ''; // Clear existing
+                if (loans.length === 0) {
+                    loanListContainer.innerHTML = '<p class="text-gray-500 text-center">No books currently issued.</p>';
+                } else {
+                    loans.forEach(loan => {
+                        loanTableBody.innerHTML += `
+                            <tr class="hover:bg-gray-50">
+                                <td class="table-cell text-gray-700">${loan.book_name}</td>
+                                <td class="table-cell text-gray-500">${loan.member_name}</td>
+                                <td class="table-cell text-red-600">${loan.due_date}</td>
+                                <td class="table-cell text-gray-500">$${loan.fine}</td> <!-- <-- NEW CELL -->
+                                <td class="table-cell">
+                                    <button class="return-button" data-issue-id="${loan.ISSUE_ID}" onclick="handleReturnBook(event)">
+                                        Return
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to fetch loans:', error);
+                showMainError('Failed to load issued books.');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+
+        // --- Form Submit Handlers ---
+
+        // 1. Add Book
+        addBookForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(addBookForm);
+            const bookData = {
+                BOOK_ID: formData.get('book_id'),
+                NAME: formData.get('name'),
+                AUTHOR: formData.get('author'),
+                category: formData.get('category'),
+                COPIES: parseInt(formData.get('copies'))
+            };
+
+            try {
+                const response = await fetch(`${API_URL}/api/books`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(bookData),
+                });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.error || 'Failed to add book');
+                
+                showFormMessage(bookFormMessage, 'Book added successfully!', 'success');
+                addBookForm.reset();
+                await fetchBooks(); // Refresh list
+            } catch (error) {
+                showFormMessage(bookFormMessage, error.message, 'error');
+            }
+        });
+
+        // 2. Add Member
+        addMemberForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(addMemberForm);
+            const memberData = {
+                USER_ID: formData.get('user_id'),
+                NAME: formData.get('member_name'),
+                PASSWORD: formData.get('password'),
+                CONTACT: formData.get('contact')
+            };
+
+            try {
+                const response = await fetch(`${API_URL}/api/members`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(memberData),
+                });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.error || 'Failed to add member');
+                
+                showFormMessage(memberFormMessage, 'Member added successfully!', 'success');
+                addMemberForm.reset();
+                await fetchMembers(); // Refresh list
+            } catch (error) {
+                showFormMessage(memberFormMessage, error.message, 'error');
+            }
+        });
+
+        // 3. Issue Book
+        issueBookForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(issueBookForm);
+            const issueData = {
+                BOOK_ID: formData.get('issue_book_id'),
+                USER_ID: formData.get('issue_user_id'),
+                due_date: formData.get('due_date')
+            };
+
+            try {
+                const response = await fetch(`${API_URL}/api/issue`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(issueData),
+                });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.error || 'Failed to issue book');
+                
+                showFormMessage(loanFormMessage, 'Book issued successfully!', 'success');
+                issueBookForm.reset();
+                await fetchLoans(); // Refresh loan list
+                await fetchBooks(); // Refresh book list (copies changed)
+            } catch (error) {
+                showFormMessage(loanFormMessage, error.message, 'error');
+            }
+        });
+
+        // 4. Return Book (attached to buttons)
+        async function handleReturnBook(event) {
+            const button = event.target;
+            const issueId = button.dataset.issueId;
+            
+            if (!confirm(`Are you sure you want to return this book (Issue ID: ${issueId})?`)) {
+                return;
+            }
+            
+            clearMessages();
+            button.disabled = true;
+            button.textContent = 'Returning...';
+
+            try {
+                const response = await fetch(`${API_URL}/api/return/${issueId}`, {
+                    method: 'PUT'
+                });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.error || 'Failed to return book');
+                
+                // Refresh both lists, as copies and loans have changed
+                await fetchLoans(); 
+                await fetchBooks();
+
+            } catch (error) {
+                showMainError(error.message);
+                button.disabled = false;
+                button.textContent = 'Return';
+            }
+        }
+
+        // --- Initial Load ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // Set default due date to 2 weeks from today
+            const twoWeeks = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
+            document.getElementById('due_date').value = twoWeeks.toISOString().split('T')[0];
+            
+            // Load the default tab's content
+            fetchBooks();
+        });
+
+    </script>
+</body>
+</html>
+
