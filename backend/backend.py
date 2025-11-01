@@ -7,9 +7,9 @@ from datetime import date
 # --- IMPORTANT ---
 db_config = {
     'host': 'localhost',
-    'database': 'library', # <-- Changed to 'library'
+    'database': 'library', 
     'user': 'root', # <-- Change this
-    'password': '0plm9okn' # <-- Change this
+    'password': 'your password' # <-- Change this
 }
 # --- IMPORTANT ---
 
